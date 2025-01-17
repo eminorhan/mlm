@@ -1,0 +1,19 @@
+# file extensions
+*.pt
+*.pth
+*.tar
+*.ckpt
+*.npz
+*.png
+*.train
+*.test
+*.txt
+*.json
+*.jsonl
+*.out
+
+# core dumps
+core
+
+# directories
+**/__pycache__/

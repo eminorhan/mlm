@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --account=stf218
-#SBATCH --nodes=64
+#SBATCH --nodes=8
 #SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=8
 #SBATCH --time=00:30:00
@@ -32,6 +32,7 @@ export OMP_NUM_THREADS=1
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 export HF_HOME="/lustre/orion/stf218/scratch/emin/huggingface"
 export HF_DATASETS_CACHE="/lustre/orion/stf218/scratch/emin/huggingface"
+export HF_HUB_CACHE="/lustre/orion/stf218/scratch/emin/huggingface/hub"
 export HF_HUB_OFFLINE=1
 export GPUS_PER_NODE=8
 
@@ -41,9 +42,7 @@ export MASTER_PORT=3442
 
 # root model directory
 MODEL_ROOT_DIR="/lustre/orion/stf218/scratch/emin/mlm/models"
-SP="xlm-roberta-large"
-
-export GPUS_PER_NODE=8
+DATASET_NAME="babylm_10M"
 
 export LAUNCHER="accelerate launch \
     --num_processes $((SLURM_NNODES * GPUS_PER_NODE)) \
@@ -62,16 +61,15 @@ export LAUNCHER="accelerate launch \
     "
 export SCRIPT="/lustre/orion/stf218/scratch/emin/mlm/train.py"
 export SCRIPT_ARGS=" \
-    --config_name "answerdotai/ModernBERT-large" \
-    --dataset_name "allenai/c4" \
-    --dataset_config_name "realnewslike" \
-    --max_seq_length 8192 \
-    --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 1 \
+    --model_name_or_path "FacebookAI/roberta-large" \
+    --dataset_name "$DATASET_NAME" \
+    --per_device_train_batch_size 1 \
     --learning_rate 0.0003 \
-    --output_dir "${MODEL_ROOT_DIR}/${SP}" \
-    --num_train_epochs 20 \
-    --checkpointing_steps 100 \
+    --output_dir "${MODEL_ROOT_DIR}/${DATASET_NAME}" \
+    --num_train_epochs 100 \
+    --checkpointing_steps 1000 \
+    --overwrite_cache \
+    --max_seq_length 8192
     "
 # this step is necessary because accelerate launch does not seem to handle multiline arguments properly
 export CMD="$LAUNCHER $SCRIPT $SCRIPT_ARGS" 

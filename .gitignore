@@ -17,3 +17,5 @@ core
 
 # directories
 **/__pycache__/
+data/
+models/

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --account=stf218
-#SBATCH --nodes=8
+#SBATCH --nodes=4
 #SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=8
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --job-name=train_mlm
 #SBATCH --output=train_mlm_%A_%a.out
 #SBATCH --array=0
@@ -19,17 +19,17 @@ export no_proxy='localhost,127.0.0.0/8,*.ccs.ornl.gov'
 
 # set misc env vars
 export LOGLEVEL=INFO
-export LD_LIBRARY_PATH=/lustre/orion/stf218/scratch/emin/aws-ofi-rccl/lib:$LD_LIBRARY_PATH  # enable aws-ofi-rccl
+export LD_LIBRARY_PATH=/lustre/orion/stf218/scratch/emin/container/aws-ofi-rccl/lib:$LD_LIBRARY_PATH  # enable aws-ofi-rccl
 export NCCL_NET_GDR_LEVEL=3   # can improve performance, but remove this setting if you encounter a hang/crash.
 export NCCL_ALGO=TREE         # may see performance difference with either setting. (should not need to use this, but can try)
 export NCCL_CROSS_NIC=1       # on large systems, this nccl setting has been found to improve performance
-export NCCL_SOCKET_IFNAME=hsn0
-export GLOO_SOCKET_IFNAME=hsn0
-export NCCL_IB_TIMEOUT=31
+# export NCCL_SOCKET_IFNAME=hsn0
+# export GLOO_SOCKET_IFNAME=hsn0
+# export NCCL_IB_TIMEOUT=31
 export TORCH_NCCL_BLOCKING_WAIT=1
 export TORCHELASTIC_ENABLE_FILE_TIMER=1
-export OMP_NUM_THREADS=1
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+# export OMP_NUM_THREADS=1
+# export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 export HF_HOME="/lustre/orion/stf218/scratch/emin/huggingface"
 export HF_DATASETS_CACHE="/lustre/orion/stf218/scratch/emin/huggingface"
 export HF_HUB_CACHE="/lustre/orion/stf218/scratch/emin/huggingface/hub"
@@ -42,7 +42,7 @@ export MASTER_PORT=3442
 
 # root model directory
 MODEL_ROOT_DIR="/lustre/orion/stf218/scratch/emin/mlm/models"
-DATASET_NAME="babylm_10M"
+DATASET_NAME="c4"
 
 export LAUNCHER="accelerate launch \
     --num_processes $((SLURM_NNODES * GPUS_PER_NODE)) \
@@ -53,9 +53,9 @@ export LAUNCHER="accelerate launch \
     --mixed_precision no \
     --rdzv_backend c10d \
     --use_fsdp \
-    --fsdp_auto_wrap_policy SIZE_BASED_WRAP \
+    --fsdp_auto_wrap_policy TRANSFORMER_BASED_WRAP \
+    --fsdp_transformer_layer_cls_to_wrap RobertaLayer \
     --fsdp_backward_prefetch BACKWARD_PRE \
-    --fsdp_min_num_params 2000 \
     --fsdp_sharding_strategy 1 \
     --fsdp_state_dict_type FULL_STATE_DICT \
     "
@@ -63,7 +63,7 @@ export SCRIPT="/lustre/orion/stf218/scratch/emin/mlm/train.py"
 export SCRIPT_ARGS=" \
     --model_name_or_path "FacebookAI/roberta-large" \
     --dataset_name "$DATASET_NAME" \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 2 \
     --learning_rate 0.0003 \
     --output_dir "${MODEL_ROOT_DIR}/${DATASET_NAME}" \
     --num_train_epochs 100 \
